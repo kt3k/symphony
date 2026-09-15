@@ -168,6 +168,11 @@ export class Orchestrator {
   }
 
   applyWorkflow(definition: WorkflowDefinition, config: ServiceConfig): void {
+    if (JSON.stringify(config.server) !== JSON.stringify(this.#config.server)) {
+      this.#log.warn(
+        "server.port/host changed; restart required for the HTTP server to pick it up",
+      );
+    }
     this.#config = config;
     this.#promptTemplate = definition.promptTemplate;
     this.#maxConcurrentAgents = config.agent.maxConcurrentAgents;
@@ -258,7 +263,14 @@ export class Orchestrator {
     };
   }
 
-  issueDetails(identifier: string): Record<string, unknown> | null {
+  async issueDetails(identifier: string): Promise<Record<string, unknown> | null> {
+    const workspacePath = async () => {
+      try {
+        return (await this.#workspaces.pathFor(identifier)).path;
+      } catch {
+        return null;
+      }
+    };
     for (const [id, entry] of this.#running) {
       if (entry.identifier === identifier) {
         const row = this.snapshot().running.find((r) => r.issue_id === id) ?? null;
@@ -266,7 +278,7 @@ export class Orchestrator {
           issue_identifier: identifier,
           issue_id: id,
           status: "running",
-          workspace: { path: null },
+          workspace: { path: await workspacePath() },
           attempts: { current_retry_attempt: entry.retryAttempt },
           running: row,
           retry: null,
@@ -281,6 +293,7 @@ export class Orchestrator {
           issue_identifier: identifier,
           issue_id: entry.issueId,
           status: "retrying",
+          workspace: { path: await workspacePath() },
           attempts: { current_retry_attempt: entry.attempt },
           running: null,
           retry: row,

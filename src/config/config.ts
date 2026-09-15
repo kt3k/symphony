@@ -43,9 +43,15 @@ export interface CodexConfig {
   stallTimeoutMs: number;
 }
 
+export interface ServerConfig {
+  port: number;
+  host: string;
+}
+
 export interface ServiceConfig {
   workflowPath: string;
   workflowDir: string;
+  server: ServerConfig | null;
   tracker: TrackerConfig;
   polling: { intervalMs: number };
   workspace: { root: string };
@@ -155,6 +161,7 @@ export function buildConfig(def: WorkflowDefinition, env: EnvLookup): ServiceCon
   const hooks = section(root, "hooks");
   const agent = section(root, "agent");
   const codex = section(root, "codex");
+  const server = section(root, "server");
 
   const kind = optionalString(tracker, "kind", "tracker.kind");
   const provider = section(tracker, "provider");
@@ -176,9 +183,18 @@ export function buildConfig(def: WorkflowDefinition, env: EnvLookup): ServiceCon
 
   const command = optionalString(codex, "command", "codex.command") ?? DEFAULTS.codexCommand;
 
+  let serverConfig: ServerConfig | null = null;
+  if (server["port"] !== undefined && server["port"] !== null) {
+    serverConfig = {
+      port: integer(server, "port", "server.port", 0, { min: 0 }),
+      host: optionalString(server, "host", "server.host") ?? "127.0.0.1",
+    };
+  }
+
   return {
     workflowPath: def.path,
     workflowDir: def.dir,
+    server: serverConfig,
     tracker: {
       kind: kind === null || kind.trim() === "" ? null : kind.trim(),
       provider,

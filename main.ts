@@ -7,6 +7,8 @@ const USAGE = `symphony ${SYMPHONY_VERSION}
 Usage: symphony [path-to-WORKFLOW.md] [options]
 
 Options:
+  --port <n>                           Serve the dashboard and JSON API on 127.0.0.1:<n>
+                                       (overrides server.port in WORKFLOW.md; 0 = ephemeral)
   --log-level <debug|info|warn|error>  Minimum log level (default: info)
   -h, --help                           Show this help
   -V, --version                        Print the version
@@ -15,6 +17,7 @@ Options:
 export interface CliArgs {
   workflowPath: string;
   logLevel: LogLevel;
+  port: number | undefined;
   help: boolean;
   version: boolean;
 }
@@ -23,14 +26,23 @@ export function parseArgs(argv: string[]): CliArgs {
   const out: CliArgs = {
     workflowPath: "WORKFLOW.md",
     logLevel: "info",
+    port: undefined,
     help: false,
     version: false,
+  };
+  const parsePort = (value: string | undefined) => {
+    if (value === undefined || !/^\d+$/.test(value) || Number(value) > 65535) {
+      throw new Error(`invalid --port ${JSON.stringify(value)}`);
+    }
+    return Number(value);
   };
   const positional: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "-h" || arg === "--help") out.help = true;
     else if (arg === "-V" || arg === "--version") out.version = true;
+    else if (arg === "--port") out.port = parsePort(argv[++i]);
+    else if (arg.startsWith("--port=")) out.port = parsePort(arg.slice("--port=".length));
     else if (arg === "--log-level") {
       const level = argv[++i];
       if (!["debug", "info", "warn", "error"].includes(level ?? "")) {
@@ -71,7 +83,7 @@ export async function main(argv: string[]): Promise<number> {
   const logger = new Logger([new StderrSink()], {}, args.logLevel);
   let app: App;
   try {
-    app = await App.start({ workflowPath: args.workflowPath, logger });
+    app = await App.start({ workflowPath: args.workflowPath, logger, port: args.port });
   } catch (err) {
     logger.error("startup failed", { error: (err as Error).message });
     return 1;

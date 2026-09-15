@@ -30,6 +30,9 @@ agent:
   max_concurrent_agents_by_state:
     "in progress": 2
 
+# server:
+#   port: 8080          # dashboard + JSON API on 127.0.0.1 (or run with --port)
+
 codex:
   command: codex app-server
   approval_policy: on-request
