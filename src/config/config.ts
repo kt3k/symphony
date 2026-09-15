@@ -1,9 +1,3 @@
-/**
- * Typed configuration layer (SPEC §5.3, §6).
- *
- * Builds a `ServiceConfig` from the workflow front matter, applying defaults, `$VAR` and `~`
- * resolution for path values, and type validation. Unknown keys are ignored.
- */
 import { isAbsolute, resolve } from "@std/path";
 import type { WorkflowDefinition } from "../workflow/loader.ts";
 import { type EnvLookup, resolveEnvValue } from "../util/env.ts";
@@ -20,7 +14,6 @@ export interface TrackerConfig {
   kind: string | null;
   provider: Record<string, unknown>;
   requiredLabels: string[];
-  /** `null` means "not configured"; the adapter profile default applies if it has one. */
   activeStates: string[] | null;
   terminalStates: string[] | null;
 }
@@ -37,7 +30,6 @@ export interface AgentConfig {
   maxConcurrentAgents: number;
   maxTurns: number;
   maxRetryBackoffMs: number;
-  /** Keys are normalized state names (§5.3.5). */
   maxConcurrentAgentsByState: Map<string, number>;
 }
 
@@ -147,7 +139,6 @@ function perStateLimits(raw: unknown): Map<string, number> {
     return map;
   }
   for (const [state, limit] of Object.entries(raw as Raw)) {
-    // Invalid entries (non-positive or non-numeric) are ignored (§5.3.5).
     if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) continue;
     const key = normalizeState(state);
     if (key === "") continue;

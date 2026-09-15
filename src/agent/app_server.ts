@@ -1,11 +1,3 @@
-/**
- * Codex app-server client (SPEC §10). Speaks newline-delimited JSON-RPC over the subprocess stdio
- * of `bash -lc <codex.command>` started in the per-issue workspace.
- *
- * Trust posture (high-trust, documented in README): every approval request from the app-server is
- * auto-accepted for the session, user-input requests fail the turn, and dynamic tool calls are
- * routed to the tracker adapter host-side.
- */
 import { TextLineStream } from "@std/streams";
 import type { ToolResult, ToolSpec } from "../tracker/types.ts";
 import type { Logger } from "../observability/logger.ts";
@@ -39,12 +31,10 @@ export interface UsageTotals {
   total_tokens: number;
 }
 
-/** Runtime event emitted upstream to the orchestrator (§10.4). */
 export interface AgentEvent {
   event: string;
   timestamp: string;
   codex_app_server_pid: number | null;
-  /** Absolute thread totals when the event carries them (§13.5). */
   usage?: UsageTotals | null;
   rate_limits?: unknown;
   message?: string;
@@ -57,14 +47,12 @@ export interface AgentEvent {
 export interface AppServerSessionOptions {
   command: string;
   cwd: string;
-  /** Full child environment (already stripped of tracker secrets). */
   env: Record<string, string>;
   approvalPolicy: unknown;
   threadSandbox: unknown;
   turnSandboxPolicy: unknown;
   readTimeoutMs: number;
   turnTimeoutMs: number;
-  /** `<issue.identifier>: <issue.title>` (§10.2). */
   title: string;
   tools: ToolSpec[];
   executeTool: (name: string, args: unknown) => Promise<ToolResult>;
@@ -115,7 +103,6 @@ function asNumber(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-/** Extracts absolute thread totals from a `thread/tokenUsage/updated` payload (§13.5). */
 export function usageFromTokenUsage(params: unknown): UsageTotals | null {
   if (!isObject(params)) return null;
   const tokenUsage = params["tokenUsage"];
@@ -341,8 +328,6 @@ export class AppServerSession implements AgentSession {
       }
     }
   }
-
-  // ---- transport ---------------------------------------------------------------------------
 
   async #send(message: JsonObject): Promise<void> {
     const line = JSON.stringify(message) + "\n";
@@ -633,8 +618,6 @@ export class AppServerSession implements AgentSession {
         fail(-32601, `method ${method} is not supported by Symphony`);
     }
   }
-
-  // ---- timers & events ---------------------------------------------------------------------
 
   #armTurnTimer(): void {
     if (this.#activeTurn === null) return;

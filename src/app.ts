@@ -1,6 +1,3 @@
-/**
- * Host wiring: workflow load -> config -> orchestrator -> watcher (SPEC §16.1).
- */
 import { loadWorkflow, type WorkflowDefinition } from "./workflow/loader.ts";
 import { WorkflowWatcher } from "./workflow/watcher.ts";
 import { buildConfig, type ServiceConfig } from "./config/config.ts";
@@ -32,7 +29,6 @@ export class App {
     this.#logger = logger;
   }
 
-  /** Loads and validates the workflow, then starts polling. Throws on startup failure. */
   static async start(options: AppOptions): Promise<App> {
     const env = options.env ?? denoEnv;
     const definition = await loadWorkflow(options.workflowPath);

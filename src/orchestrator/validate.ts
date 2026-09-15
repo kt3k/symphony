@@ -1,6 +1,3 @@
-/**
- * Dispatch preflight validation (SPEC §6.3).
- */
 import type { ServiceConfig } from "../config/config.ts";
 import type { TrackerAdapter, TrackerAdapterFactory } from "../tracker/types.ts";
 import { findTrackerFactory } from "../tracker/registry.ts";

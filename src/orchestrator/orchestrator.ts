@@ -1,8 +1,3 @@
-/**
- * Orchestrator: the single authority over scheduling state (SPEC §4.1.8, §7, §8, §16).
- *
- * Everything here runs on the event loop, so state mutations are serialized without locks.
- */
 import type { ServiceConfig } from "../config/config.ts";
 import type { WorkflowDefinition } from "../workflow/loader.ts";
 import {
@@ -91,13 +86,10 @@ export interface Snapshot {
 export interface OrchestratorDeps {
   logger: Logger;
   env: EnvLookup;
-  /** Parent environment for the coding-agent child (before secret stripping). */
   parentEnv: Record<string, string>;
   startSession: AgentSessionFactory;
   trackerRegistry?: ReadonlyMap<string, TrackerAdapterFactory>;
-  /** Called after each tick / state change so status surfaces can refresh (§8.1 step 6). */
   onStateChange?: () => void;
-  /** Defensive workflow re-check before dispatch in case watch events were missed (§6.2). */
   refreshWorkflow?: () => Promise<void>;
 }
 
@@ -113,7 +105,6 @@ export class Orchestrator {
   #lastValidationError: string | null = null;
   #lastReloadError: string | null = null;
 
-  // §4.1.8 runtime state
   #pollIntervalMs: number;
   #maxConcurrentAgents: number;
   #running = new Map<string, RunningEntry>();
@@ -152,7 +143,6 @@ export class Orchestrator {
     return this.#workspaces;
   }
 
-  /** Startup (§16.1): validate, terminal cleanup, immediate tick. Throws on validation failure. */
   async start(): Promise<void> {
     const validation = this.#validate();
     if (!validation.ok) {
@@ -163,7 +153,6 @@ export class Orchestrator {
     this.#scheduleTick(0);
   }
 
-  /** Terminates workers, cancels timers. */
   async stop(): Promise<void> {
     this.#stopped = true;
     if (this.#tickTimer !== null) clearTimeout(this.#tickTimer);
@@ -178,7 +167,6 @@ export class Orchestrator {
     this.#claimed.clear();
   }
 
-  /** §6.2: re-apply a reloaded workflow. Invalid configs never reach here. */
   applyWorkflow(definition: WorkflowDefinition, config: ServiceConfig): void {
     this.#config = config;
     this.#promptTemplate = definition.promptTemplate;
@@ -200,7 +188,6 @@ export class Orchestrator {
     }
   }
 
-  /** Records an operator-visible reload failure while keeping the last known good config. */
   noteReloadError(message: string): void {
     this.#lastReloadError = message;
     this.#log.error("workflow reload failed; keeping last known good configuration", {
@@ -208,7 +195,6 @@ export class Orchestrator {
     });
   }
 
-  /** Queues an immediate poll + reconcile; coalesces while a tick is running. */
   requestRefresh(): { queued: boolean; coalesced: boolean } {
     if (this.#stopped) return { queued: false, coalesced: false };
     if (this.#ticking) {
@@ -272,7 +258,6 @@ export class Orchestrator {
     };
   }
 
-  /** Issue-level debug view (§13.7.2), or null when unknown to in-memory state. */
   issueDetails(identifier: string): Record<string, unknown> | null {
     for (const [id, entry] of this.#running) {
       if (entry.identifier === identifier) {
@@ -306,8 +291,6 @@ export class Orchestrator {
     return null;
   }
 
-  // ---- tick ----------------------------------------------------------------------------------
-
   #scheduleTick(delayMs: number): void {
     if (this.#stopped) return;
     if (this.#tickTimer !== null) clearTimeout(this.#tickTimer);
@@ -319,7 +302,6 @@ export class Orchestrator {
     }, delayMs);
   }
 
-  /** §16.2 */
   async #tick(): Promise<void> {
     if (this.#ticking || this.#stopped) return;
     this.#ticking = true;
@@ -381,8 +363,6 @@ export class Orchestrator {
     }
   }
 
-  // ---- eligibility & slots (§8.2, §8.3) ----------------------------------------------------
-
   #availableSlots(): number {
     return Math.max(this.#maxConcurrentAgents - this.#running.size, 0);
   }
@@ -425,7 +405,6 @@ export class Orchestrator {
       this.#perStateSlotAvailable(issue.state);
   }
 
-  /** Retry-path eligibility: like `#shouldDispatch` but ignoring the issue's own claim. */
   #retryDispatchAllowed(issue: Issue, tracker: EffectiveTracker): boolean {
     return this.#hasRequiredFields(issue) &&
       this.#stateIsActive(issue.state, tracker) &&
@@ -433,8 +412,6 @@ export class Orchestrator {
       !this.#running.has(issue.id) &&
       this.#perStateSlotAvailable(issue.state);
   }
-
-  // ---- dispatch & worker lifecycle (§16.4, §16.5, §16.6) -------------------------------------
 
   #dispatch(issue: Issue, attempt: number | null, tracker: EffectiveTracker): void {
     const existingRetry = this.#retryAttempts.get(issue.id);
@@ -522,7 +499,6 @@ export class Orchestrator {
     }
   }
 
-  /** §13.5: absolute totals -> deltas against the last reported totals. */
   #applyUsage(entry: RunningEntry, usage: UsageTotals): void {
     const reset = usage.total_tokens < entry.lastReported.total;
     const delta = reset
@@ -579,8 +555,6 @@ export class Orchestrator {
     this.#notify();
   }
 
-  // ---- retries (§8.4) -----------------------------------------------------------------------
-
   #scheduleRetry(
     issueId: string,
     attempt: number,
@@ -617,7 +591,6 @@ export class Orchestrator {
     this.#claimed.add(issueId);
   }
 
-  /** §16.6 on_retry_timer */
   async #onRetryTimer(issueId: string): Promise<void> {
     const retry = this.#retryAttempts.get(issueId);
     if (!retry || this.#stopped) return;
@@ -679,8 +652,6 @@ export class Orchestrator {
     this.#dispatch(issue, retry.attempt, tracker);
     this.#notify();
   }
-
-  // ---- reconciliation (§8.5, §16.3) --------------------------------------------------------
 
   async #reconcileRunningIssues(): Promise<void> {
     await this.#reconcileStalledRuns();
@@ -784,7 +755,6 @@ export class Orchestrator {
     }
   }
 
-  /** §8.6 */
   async #startupTerminalCleanup(): Promise<void> {
     const tracker = this.#tracker;
     if (!tracker || tracker.terminalStates.length === 0) return;

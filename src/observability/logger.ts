@@ -1,11 +1,3 @@
-/**
- * Structured logger (SPEC §13.1, §13.2).
- *
- * Every line is `<iso-timestamp> <LEVEL> <message> key=value ...`. Issue-related logs carry
- * `issue_id` / `issue_identifier`, session logs carry `session_id`; callers bind those with
- * `child()`. Sink failures never propagate (§13.2).
- */
-
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export type LogFields = Record<string, unknown>;
@@ -23,7 +15,6 @@ export class StderrSink implements LogSink {
   }
 }
 
-/** Collects lines in memory; used by tests. */
 export class MemorySink implements LogSink {
   lines: string[] = [];
   write(line: string): void {
@@ -107,7 +98,6 @@ export class Logger {
   }
 }
 
-/** Truncates hook/agent output before it lands in a log line (§15.4). */
 export function truncate(text: string, max = 2000): string {
   if (text.length <= max) return text;
   return text.slice(0, max) + `...(${text.length - max} more chars)`;

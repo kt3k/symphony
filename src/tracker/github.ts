@@ -1,11 +1,3 @@
-/**
- * GitHub Issues tracker adapter (SPEC §11). Profile documented in README.md.
- *
- * - `tracker.kind`: `github`
- * - scope: one repository (`provider.owner` + `provider.repo`, or `provider.repository`)
- * - `id`: issue number as a string; `identifier`: `<repo>-<number>`
- * - state: `closed` for closed issues, else the value of a `status:`-prefixed label, else `open`
- */
 import {
   type Issue,
   normalizeLabels,
@@ -78,7 +70,6 @@ export function parseGitHubProvider(
     );
   }
 
-  // Token: explicit value or `$VAR` in config, else the documented host-side fallbacks.
   let token: string | undefined;
   if (raw["token"] !== undefined && raw["token"] !== null) {
     const resolved = resolveEnvValue(raw["token"], env);
@@ -184,7 +175,6 @@ function labelValue(names: string[], prefix: string): string | null {
   return null;
 }
 
-/** Maps one GitHub issue payload to the normalized Issue model; throws on malformed required fields. */
 export function normalizeGitHubIssue(payload: unknown, cfg: GitHubProviderConfig): Issue {
   if (!payload || typeof payload !== "object") {
     throw new MalformedIssueError("issue payload is not an object");
@@ -356,8 +346,6 @@ export class GitHubAdapter implements TrackerAdapter {
     }
   }
 
-  // ---- provider-native agent tools (§10.5, §11.5) ------------------------------------------
-
   agentToolSpecs(): ToolSpec[] {
     return [
       {
@@ -517,8 +505,6 @@ export class GitHubAdapter implements TrackerAdapter {
       return { success: false, output: { error } };
     }
   }
-
-  // ---- transport -------------------------------------------------------------------------
 
   async #request(
     method: string,

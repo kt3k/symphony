@@ -1,6 +1,3 @@
-/**
- * Prompt construction (SPEC §5.4, §12).
- */
 import { Liquid } from "liquidjs";
 import type { Issue } from "../tracker/types.ts";
 
@@ -17,7 +14,6 @@ export const DEFAULT_PROMPT = "You are working on an issue from the configured t
 
 const engine = new Liquid({ strictVariables: true, strictFilters: true });
 
-/** Renders the first-turn prompt with strict variable/filter checking. */
 export async function renderPrompt(
   template: string,
   issue: Issue,
@@ -44,10 +40,7 @@ export async function renderPrompt(
   }
 }
 
-/**
- * Continuation guidance for later in-worker turns on the same thread (§7.1, §10.2). It deliberately
- * does not repeat the original task prompt, which is already in the thread history.
- */
+// Deliberately does not repeat the task prompt already present in the thread history.
 export function continuationPrompt(issue: Issue, turnNumber: number, maxTurns: number): string {
   return [
     `Continue working on ${issue.identifier} (${issue.title}).`,

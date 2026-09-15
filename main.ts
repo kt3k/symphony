@@ -1,6 +1,3 @@
-/**
- * Symphony CLI (SPEC §17.7): `symphony [path-to-WORKFLOW.md] [--log-level LEVEL]`.
- */
 import { App } from "./src/app.ts";
 import { Logger, type LogLevel, StderrSink } from "./src/observability/logger.ts";
 import { SYMPHONY_VERSION } from "./src/agent/app_server.ts";

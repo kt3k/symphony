@@ -2,7 +2,6 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
-/** Monotonic milliseconds for retry due times and stall detection (§4.1.7). */
 export function monoMs(): number {
   return performance.now();
 }
@@ -25,7 +24,6 @@ export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-/** Rejects with `error` if `promise` does not settle within `ms`. */
 export function withTimeout<T>(promise: Promise<T>, ms: number, error: () => Error): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(error()), ms);

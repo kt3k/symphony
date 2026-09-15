@@ -1,17 +1,9 @@
-/**
- * Dynamic WORKFLOW.md reload (SPEC §6.2).
- *
- * Watches the directory containing the workflow file (editors typically replace files by rename),
- * debounces bursts, and hands the reloaded definition to a callback. `reloadIfChanged()` is also
- * exposed so callers can re-check defensively before dispatch in case watch events are missed.
- */
 import { basename, dirname } from "@std/path";
 import { loadWorkflow, type WorkflowDefinition } from "./loader.ts";
 import type { Logger } from "../observability/logger.ts";
 
 export interface WorkflowWatcherOptions {
   path: string;
-  /** Source text of the currently effective workflow; used to skip no-op reloads. */
   currentSource: string;
   onReload: (definition: WorkflowDefinition) => void | Promise<void>;
   onError: (error: Error) => void;
@@ -36,6 +28,7 @@ export class WorkflowWatcher {
     const dir = dirname(this.#options.path);
     const file = basename(this.#options.path);
     try {
+      // Watch the directory: editors typically replace the file by rename.
       this.#watcher = Deno.watchFs(dir, { recursive: false });
     } catch (err) {
       this.#options.logger.warn("workflow watch unavailable; relying on per-tick reload checks", {
@@ -62,7 +55,6 @@ export class WorkflowWatcher {
     }
   }
 
-  /** Re-reads the workflow; applies it only when the content changed. Errors go to `onError`. */
   reloadIfChanged(): Promise<void> {
     if (this.#reloading) return this.#reloading;
     this.#reloading = this.#reload().finally(() => {

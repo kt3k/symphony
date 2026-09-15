@@ -1,6 +1,3 @@
-/**
- * Workspace manager (SPEC §4.2, §9).
- */
 import { join, resolve, SEPARATOR } from "@std/path";
 import type { HooksConfig } from "../config/config.ts";
 import type { Logger } from "../observability/logger.ts";
@@ -30,7 +27,6 @@ export class WorkspaceError extends Error {
 
 const ALLOWED = /^[A-Za-z0-9._-]+$/;
 
-/** §4.2 / §9.5 invariant 3: sanitized identifier plus a 64-bit hash suffix when sanitizing changed it. */
 export async function workspaceKey(identifier: string): Promise<string> {
   const sanitized = identifier.replace(/[^A-Za-z0-9._-]/g, "_");
   if (sanitized === identifier && sanitized !== "") return sanitized;
@@ -41,7 +37,6 @@ export async function workspaceKey(identifier: string): Promise<string> {
   return `${sanitized === "" ? "issue" : sanitized}-${hex}`;
 }
 
-/** §9.5 invariant 2: `path` must be a descendant of `root` (both absolute, normalized). */
 export function isInsideRoot(root: string, path: string): boolean {
   const normalizedRoot = resolve(root);
   const normalizedPath = resolve(path);
@@ -53,7 +48,6 @@ export interface WorkspaceManagerOptions {
   root: string;
   hooks: HooksConfig;
   logger: Logger;
-  /** Shell used for hooks; defaults to `bash -lc` (§9.4). */
   shell?: string[];
 }
 
@@ -74,7 +68,6 @@ export class WorkspaceManager {
     return this.#root;
   }
 
-  /** Re-applies reloaded `workspace`/`hooks` config for future operations (§6.2). */
   updateConfig(root: string, hooks: HooksConfig): void {
     this.#root = resolve(root);
     this.#hooks = hooks;
@@ -94,7 +87,6 @@ export class WorkspaceManager {
     return { path, workspaceKey: key };
   }
 
-  /** §9.2: create or reuse the per-issue directory; run `after_create` only on creation. */
   async createForIssue(identifier: string): Promise<Workspace> {
     const { path, workspaceKey } = await this.pathFor(identifier);
     let createdNow = false;
@@ -124,7 +116,6 @@ export class WorkspaceManager {
     if (createdNow && this.#hooks.afterCreate !== null) {
       const result = await this.runHook("after_create", path);
       if (!result.ok) {
-        // Failure aborts workspace creation; remove the partially prepared directory (§9.3).
         await Deno.remove(path, { recursive: true }).catch(() => {});
         throw new WorkspaceError(
           `after_create hook ${result.timedOut ? "timed out" : `failed with code ${result.code}`}`,
@@ -134,7 +125,6 @@ export class WorkspaceManager {
     return { path, workspaceKey, createdNow };
   }
 
-  /** Removes the workspace for a terminal issue, running `before_remove` best-effort (§9.4). */
   async remove(identifier: string): Promise<boolean> {
     const { path } = await this.pathFor(identifier);
     let exists = false;
@@ -151,7 +141,6 @@ export class WorkspaceManager {
     return true;
   }
 
-  /** Runs one configured hook in the workspace; returns `ok: true` when the hook is unset. */
   async runHook(name: HookName, cwd: string): Promise<HookResult> {
     const script = this.#scriptFor(name);
     if (script === null) return { ok: true, code: 0, timedOut: false, output: "" };

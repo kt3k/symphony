@@ -1,6 +1,3 @@
-/**
- * WORKFLOW.md loader (SPEC §5.1, §5.2, §5.5).
- */
 import { parse as parseYaml } from "@std/yaml";
 import { dirname, resolve } from "@std/path";
 
@@ -17,21 +14,15 @@ export class WorkflowError extends Error {
 }
 
 export interface WorkflowDefinition {
-  /** Absolute path of the loaded WORKFLOW.md. */
   path: string;
-  /** Directory containing WORKFLOW.md; relative `workspace.root` resolves against it. */
   dir: string;
-  /** Raw file text, kept so reloads can detect content changes cheaply. */
   source: string;
-  /** YAML front matter root object (empty when absent). */
   config: Record<string, unknown>;
-  /** Trimmed Markdown body used as the per-issue prompt template. */
   promptTemplate: string;
 }
 
 const FENCE = /^---\s*$/;
 
-/** Splits front matter from body and parses the YAML (§5.2). */
 export function parseWorkflow(
   source: string,
 ): Pick<WorkflowDefinition, "config" | "promptTemplate"> {

@@ -1,7 +1,3 @@
-/**
- * Worker attempt: workspace + prompt + app-server session with the in-process turn loop
- * (SPEC §10.7, §16.5).
- */
 import type { ServiceConfig } from "../config/config.ts";
 import type { Issue, TrackerAdapter } from "../tracker/types.ts";
 import { issueRoutable, normalizeState } from "../tracker/types.ts";
@@ -29,14 +25,12 @@ export class WorkerError extends Error {
 }
 
 export interface WorkerContext {
-  /** Config snapshot bound to this attempt (§10.5: one session, one snapshot). */
   config: ServiceConfig;
   promptTemplate: string;
   tracker: TrackerAdapter;
   activeStates: string[];
   workspaces: WorkspaceManager;
   startSession: AgentSessionFactory;
-  /** Parent environment; tracker secrets are stripped before launch. */
   parentEnv: Record<string, string>;
   logger: Logger;
   onEvent: (event: AgentEvent) => void;
