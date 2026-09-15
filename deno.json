@@ -1,0 +1,31 @@
+{
+  "name": "symphony",
+  "version": "0.1.0",
+  "exports": "./main.ts",
+  "tasks": {
+    "start": "deno run --allow-read --allow-write --allow-env --allow-run --allow-net main.ts",
+    "test": "deno test --allow-read --allow-write --allow-env --allow-run --allow-net",
+    "check": "deno fmt --check && deno lint && deno check main.ts"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.10",
+    "@std/fs": "jsr:@std/fs@^1.0.9",
+    "@std/path": "jsr:@std/path@^1.0.8",
+    "@std/streams": "jsr:@std/streams@^1.0.9",
+    "@std/yaml": "jsr:@std/yaml@^1.0.5",
+    "liquidjs": "npm:liquidjs@^10.21.0"
+  },
+  "fmt": {
+    "lineWidth": 100,
+    "exclude": [
+      "SPEC.md"
+    ]
+  },
+  "lint": {
+    "rules": {
+      "tags": [
+        "recommended"
+      ]
+    }
+  }
+}
