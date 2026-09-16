@@ -162,10 +162,10 @@ needed for correctness.
 Errors use `{ "error": { "code", "message" } }`; wrong methods answer `405` with an `Allow` header.
 
 The dashboard lives in [`dashboard/`](./dashboard) (Vite, React, Tailwind v4, shadcn/ui components
-under `src/components/ui`). It is built with Deno's npm compatibility — no Node or npm anywhere in the
-repo; `dashboard/deno.json` pins the npm dependencies and `dashboard/deno.lock` locks them. The built
-output in `dashboard/dist` is committed so the daemon needs no build step at runtime; CI rebuilds it
-and fails if the committed files are stale. After changing the UI:
+under `src/components/ui`). It is built with Deno's npm compatibility — no Node or npm anywhere in
+the repo; `dashboard/deno.json` pins the npm dependencies and `dashboard/deno.lock` locks them. The
+built output in `dashboard/dist` is committed so the daemon needs no build step at runtime; CI
+rebuilds it and fails if the committed files are stale. After changing the UI:
 
 ```sh
 deno task build:dashboard   # tsc + vite build -> dashboard/dist
