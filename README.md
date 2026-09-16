@@ -22,6 +22,7 @@ app-server session for that issue inside the workspace.
 deno task start                      # uses ./WORKFLOW.md
 deno task start path/to/WORKFLOW.md  # explicit workflow path
 deno task start --log-level debug
+deno task start --port 8080          # dashboard + JSON API on http://127.0.0.1:8080
 ```
 
 Exit codes: `0` on normal shutdown (SIGINT/SIGTERM), `1` when startup fails (missing/invalid
@@ -142,7 +143,23 @@ the daemon as a dedicated user with a dedicated `workspace.root`, and keep token
 Structured `key=value` logs on stderr with `issue_id`, `issue_identifier` and `session_id`
 (`<thread_id>-<turn_id>`). `Orchestrator.snapshot()` returns the SPEC §13.3 runtime snapshot
 (running rows with turn counts and tokens, retry queue, aggregate totals, latest rate limits, last
-validation/reload errors). The optional HTTP dashboard/API (SPEC §13.7) is not implemented.
+validation/reload errors).
+
+### HTTP dashboard and JSON API (SPEC §13.7)
+
+Enabled by `server.port` in `WORKFLOW.md` or the CLI `--port` flag (the flag wins). Binds
+`127.0.0.1` unless `server.host` says otherwise; `port: 0` picks an ephemeral port. Changing
+`server.*` requires a restart. The server is read-only apart from `/api/v1/refresh` and is never
+needed for correctness.
+
+| Route                      | Response                                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /`                    | HTML dashboard: tiles, running sessions, retry queue, rate limits, errors; auto-refreshes every 5s                                         |
+| `GET /api/v1/state`        | The runtime snapshot (`counts`, `running[]`, `retrying[]`, `codex_totals`, `rate_limits`, `last_validation_error`, `last_reload_error`)    |
+| `GET /api/v1/<identifier>` | Per-issue debug view (`status`, `workspace.path`, `attempts`, `running`/`retry` row, `last_error`); `404 issue_not_found` when not tracked |
+| `POST /api/v1/refresh`     | `202 { queued, coalesced, requested_at, operations }` — runs a poll + reconcile now                                                        |
+
+Errors use `{ "error": { "code", "message" } }`; wrong methods answer `405` with an `Allow` header.
 
 ## Layout
 
@@ -156,6 +173,6 @@ src/workspace/              workspace keys, directories, hooks, safety invariant
 src/prompt/                 strict Liquid rendering, continuation guidance
 src/agent/                  Codex app-server client (JSON-RPC over stdio) + worker attempt loop
 src/orchestrator/           poll tick, dispatch, retries, reconciliation, snapshot
-src/observability/          logger
+src/observability/          logger, HTTP dashboard + JSON API
 tests/                      Core Conformance tests (fake tracker + fake app-server)
 ```

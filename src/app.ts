@@ -7,6 +7,7 @@ import { denoEnv, type EnvLookup } from "./util/env.ts";
 import { startAppServerSession } from "./agent/app_server.ts";
 import type { AgentSessionFactory } from "./agent/app_server.ts";
 import type { TrackerAdapterFactory } from "./tracker/types.ts";
+import { HttpServer } from "./observability/http.ts";
 
 export interface AppOptions {
   workflowPath: string;
@@ -16,16 +17,25 @@ export interface AppOptions {
   startSession?: AgentSessionFactory;
   trackerRegistry?: ReadonlyMap<string, TrackerAdapterFactory>;
   watchDebounceMs?: number;
+  /** CLI `--port`; overrides `server.port` from WORKFLOW.md. */
+  port?: number;
 }
 
 export class App {
   readonly orchestrator: Orchestrator;
   readonly watcher: WorkflowWatcher;
+  readonly httpServer: HttpServer | null;
   #logger: Logger;
 
-  private constructor(orchestrator: Orchestrator, watcher: WorkflowWatcher, logger: Logger) {
+  private constructor(
+    orchestrator: Orchestrator,
+    watcher: WorkflowWatcher,
+    httpServer: HttpServer | null,
+    logger: Logger,
+  ) {
     this.orchestrator = orchestrator;
     this.watcher = watcher;
+    this.httpServer = httpServer;
     this.#logger = logger;
   }
 
@@ -59,17 +69,33 @@ export class App {
     holder.watcher = watcher;
 
     await orchestrator.start();
+    let httpServer: HttpServer | null = null;
+    const port = options.port ?? config.server?.port;
+    if (port !== undefined) {
+      try {
+        httpServer = HttpServer.start({
+          port,
+          hostname: config.server?.host,
+          orchestrator,
+          logger: options.logger,
+        });
+      } catch (err) {
+        await orchestrator.stop();
+        throw new Error(`cannot start HTTP server on port ${port}: ${(err as Error).message}`);
+      }
+    }
     watcher.start();
     options.logger.info("symphony started", {
       workflow: definition.path,
       workspace_root: config.workspace.root,
       poll_interval_ms: config.polling.intervalMs,
     });
-    return new App(orchestrator, watcher, options.logger);
+    return new App(orchestrator, watcher, httpServer, options.logger);
   }
 
   async stop(): Promise<void> {
     this.watcher.stop();
+    await this.httpServer?.stop();
     await this.orchestrator.stop();
     this.#logger.info("symphony stopped");
   }

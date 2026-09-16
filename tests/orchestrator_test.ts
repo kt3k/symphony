@@ -354,7 +354,7 @@ Deno.test("snapshot exposes running rows with session ids, turn counts and token
   assertEquals(row.issue_url, "https://x/1");
   assertEquals(row.turn_count, 1);
   assertEquals(row.tokens, { input_tokens: 100, output_tokens: 10, total_tokens: 110 });
-  assert(h.orchestrator.issueDetails("T-1")?.status === "running");
-  assertEquals(h.orchestrator.issueDetails("T-404"), null);
+  assert((await h.orchestrator.issueDetails("T-1"))?.status === "running");
+  assertEquals(await h.orchestrator.issueDetails("T-404"), null);
   await h.shutdown();
 });
