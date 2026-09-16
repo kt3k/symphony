@@ -32,23 +32,17 @@ jobs:
   dashboard:
     name: dashboard build is current
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dashboard
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: denoland/setup-deno@v2
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: dashboard/package-lock.json
-      - run: npm ci
-      - run: npm run build
+          deno-version: v2.x
+      - run: deno task build:dashboard
       - name: Verify committed dist matches the build
         run: |
-          if [ -n "$(git status --porcelain -- dist)" ]; then
-            echo "dashboard/dist is stale; run 'npm run build' in dashboard/ and commit the result" >&2
-            git status --porcelain -- dist >&2
-            git diff --stat -- dist >&2
+          if [ -n "$(git status --porcelain -- dashboard/dist)" ]; then
+            echo "dashboard/dist is stale; run 'deno task build:dashboard' and commit the result" >&2
+            git status --porcelain -- dashboard/dist >&2
+            git diff --stat -- dashboard/dist >&2
             exit 1
           fi

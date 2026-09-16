@@ -11,7 +11,7 @@ app-server session for that issue inside the workspace.
 
 ## Requirements
 
-- Deno 2.x
+- Deno 2.x (also builds the dashboard; Node is not needed)
 - `codex` on `PATH` (or set `codex.command`), logged in / configured for the host
 - A GitHub token with `issues:write` on the target repository (exposed as `GITHUB_TOKEN`,
   `GH_TOKEN`, or referenced from `tracker.provider.token` as `$VAR_NAME`)
@@ -162,12 +162,14 @@ needed for correctness.
 Errors use `{ "error": { "code", "message" } }`; wrong methods answer `405` with an `Allow` header.
 
 The dashboard lives in [`dashboard/`](./dashboard) (Vite, React, Tailwind v4, shadcn/ui components
-under `src/components/ui`). The built output in `dashboard/dist` is committed so the daemon needs no
-Node at runtime; CI fails if it is stale. After changing the UI:
+under `src/components/ui`). It is built with Deno's npm compatibility — no Node or npm anywhere in the
+repo; `dashboard/deno.json` pins the npm dependencies and `dashboard/deno.lock` locks them. The built
+output in `dashboard/dist` is committed so the daemon needs no build step at runtime; CI rebuilds it
+and fails if the committed files are stale. After changing the UI:
 
 ```sh
-cd dashboard && npm ci && npm run build   # regenerate dist/
-npm run dev                               # live reload; proxies /api to http://127.0.0.1:8080
+deno task build:dashboard   # tsc + vite build -> dashboard/dist
+deno task dev:dashboard     # vite dev server; proxies /api to http://127.0.0.1:8080
 ```
 
 Without a build, `GET /` answers `503 dashboard_not_built` while the JSON API keeps working.

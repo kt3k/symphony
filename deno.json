@@ -5,7 +5,9 @@
   "tasks": {
     "start": "deno run --allow-read --allow-write --allow-env --allow-run --allow-net main.ts",
     "test": "deno test --allow-read --allow-write --allow-env --allow-run --allow-net",
-    "check": "deno fmt --check && deno lint && deno check main.ts"
+    "check": "deno fmt --check && deno lint && deno check main.ts",
+    "build:dashboard": "cd dashboard && deno task build",
+    "dev:dashboard": "cd dashboard && deno task dev"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.10",

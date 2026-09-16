@@ -1,1 +1,0 @@
-{"root":["./src/App.tsx","./src/main.tsx","./src/types.ts","./src/components/ui/alert.tsx","./src/components/ui/badge.tsx","./src/components/ui/button.tsx","./src/components/ui/card.tsx","./src/components/ui/progress.tsx","./src/components/ui/table.tsx","./src/lib/utils.ts","./vite.config.ts"],"version":"5.9.3"}
