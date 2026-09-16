@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "basecoat-css";
+
+@source not "../dist";
+
+:root {
+  --status-good: #0ca30c;
+  --status-critical: #d03b3b;
+}
+
+@theme inline {
+  --color-status-good: var(--status-good);
+  --color-status-critical: var(--status-critical);
+}

@@ -1,0 +1,18 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "build": "deno run -A npm:@tailwindcss/cli -i src/index.css -o dist/index.css --minify",
+    "dev": "deno run -A npm:@tailwindcss/cli -i src/index.css -o dist/index.css --watch"
+  },
+  "imports": {
+    "@tailwindcss/cli": "npm:@tailwindcss/cli@4.3.3",
+    "basecoat-css": "npm:basecoat-css@1.0.2",
+    "tailwindcss": "npm:tailwindcss@4.3.3"
+  },
+  "fmt": {
+    "exclude": ["dist"]
+  },
+  "lint": {
+    "exclude": ["dist"]
+  }
+}

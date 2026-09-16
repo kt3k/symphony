@@ -11,7 +11,7 @@ app-server session for that issue inside the workspace.
 
 ## Requirements
 
-- Deno 2.x
+- Deno 2.x (also builds the dashboard CSS; Node is not needed)
 - `codex` on `PATH` (or set `codex.command`), logged in / configured for the host
 - A GitHub token with `issues:write` on the target repository (exposed as `GITHUB_TOKEN`,
   `GH_TOKEN`, or referenced from `tracker.provider.token` as `$VAR_NAME`)
@@ -161,6 +161,20 @@ needed for correctness.
 
 Errors use `{ "error": { "code", "message" } }`; wrong methods answer `405` with an `Allow` header.
 
+The dashboard lives in [`dashboard/`](./dashboard): one static `index.html`, a vanilla `app.js`, and
+a stylesheet built from Tailwind v4 + [Basecoat](https://basecoatui.com) (shadcn/ui's look as plain
+CSS classes, no React). Only the CSS needs a build, done with Deno's npm compatibility — no Node or
+npm in the repo. `dashboard/dist/index.css` is committed so the daemon has no build step at runtime;
+CI rebuilds it and fails if the committed file is stale. After changing the UI:
+
+```sh
+deno task build:dashboard   # tailwind -> dashboard/dist/index.css
+deno task dev:dashboard     # rebuild on change; run the daemon with --port in another shell
+```
+
+Without the built CSS, the dashboard routes answer `503 dashboard_not_built` while the JSON API
+keeps working.
+
 ## Layout
 
 ```
@@ -173,6 +187,7 @@ src/workspace/              workspace keys, directories, hooks, safety invariant
 src/prompt/                 strict Liquid rendering, continuation guidance
 src/agent/                  Codex app-server client (JSON-RPC over stdio) + worker attempt loop
 src/orchestrator/           poll tick, dispatch, retries, reconciliation, snapshot
-src/observability/          logger, HTTP dashboard + JSON API
+src/observability/          logger, HTTP server (JSON API + static dashboard)
+dashboard/                  Basecoat/Tailwind dashboard (index.html, app.js); dist/index.css is committed
 tests/                      Core Conformance tests (fake tracker + fake app-server)
 ```
