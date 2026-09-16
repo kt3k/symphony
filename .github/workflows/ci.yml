@@ -44,4 +44,11 @@ jobs:
           cache-dependency-path: dashboard/package-lock.json
       - run: npm ci
       - run: npm run build
-      - run: git diff --exit-code -- dist
+      - name: Verify committed dist matches the build
+        run: |
+          if [ -n "$(git status --porcelain -- dist)" ]; then
+            echo "dashboard/dist is stale; run 'npm run build' in dashboard/ and commit the result" >&2
+            git status --porcelain -- dist >&2
+            git diff --stat -- dist >&2
+            exit 1
+          fi
