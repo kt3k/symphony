@@ -67,9 +67,23 @@ Deno.test("dashboard and JSON API serve orchestrator state", async () => {
     assertEquals(state.running[0].issue_url, "https://x/1");
     assert(typeof state.codex_totals.seconds_running === "number");
 
-    const html = await (await fetch(`${base}/`)).text();
+    const htmlResponse = await fetch(`${base}/`);
+    assertEquals(htmlResponse.headers.get("content-type"), "text/html; charset=utf-8");
+    const html = await htmlResponse.text();
     assert(html.includes("<title>Symphony</title>"));
-    assert(html.includes("/api/v1/state"));
+    assert(html.includes('<div id="root">'));
+    const script = /src="(\/assets\/[^"]+\.js)"/.exec(html);
+    assert(script, "built index.html references a script asset");
+    const asset = await fetch(`${base}${script![1]}`);
+    assertEquals(asset.status, 200);
+    assertEquals(asset.headers.get("content-type"), "text/javascript; charset=utf-8");
+    await asset.body?.cancel();
+    const missingAsset = await fetch(`${base}/assets/nope.js`);
+    assertEquals(missingAsset.status, 404);
+    await missingAsset.body?.cancel();
+    const traversal = await fetch(`${base}/assets/..%2Findex.html`);
+    assertEquals(traversal.status, 404);
+    await traversal.body?.cancel();
 
     const details = await (await fetch(`${base}/api/v1/T-1`)).json();
     assertEquals(details.status, "running");
@@ -99,6 +113,28 @@ Deno.test("dashboard and JSON API serve orchestrator state", async () => {
     assertEquals(unknown.status, 404);
     assertEquals((await unknown.json()).error.code, "not_found");
   } finally {
+    await stop();
+  }
+});
+
+Deno.test("missing dashboard build answers 503 on / but keeps the API", async () => {
+  const { HttpServer } = await import("../src/observability/http.ts");
+  const { app, stop } = await startApp("");
+  const server = HttpServer.start({
+    port: 0,
+    orchestrator: app.orchestrator,
+    logger: new Logger([new MemorySink()]),
+    dashboardDir: await Deno.makeTempDir(),
+  });
+  try {
+    const root = await fetch(`${server.url}/`);
+    assertEquals(root.status, 503);
+    assertEquals((await root.json()).error.code, "dashboard_not_built");
+    const state = await fetch(`${server.url}/api/v1/state`);
+    assertEquals(state.status, 200);
+    await state.body?.cancel();
+  } finally {
+    await server.stop();
     await stop();
   }
 });

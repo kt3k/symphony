@@ -28,3 +28,20 @@ jobs:
         with:
           deno-version: v2.x
       - run: deno task test
+
+  dashboard:
+    name: dashboard build is current
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: git diff --exit-code -- dist

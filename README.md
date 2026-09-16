@@ -161,6 +161,17 @@ needed for correctness.
 
 Errors use `{ "error": { "code", "message" } }`; wrong methods answer `405` with an `Allow` header.
 
+The dashboard lives in [`dashboard/`](./dashboard) (Vite, React, Tailwind v4, shadcn/ui components
+under `src/components/ui`). The built output in `dashboard/dist` is committed so the daemon needs no
+Node at runtime; CI fails if it is stale. After changing the UI:
+
+```sh
+cd dashboard && npm ci && npm run build   # regenerate dist/
+npm run dev                               # live reload; proxies /api to http://127.0.0.1:8080
+```
+
+Without a build, `GET /` answers `503 dashboard_not_built` while the JSON API keeps working.
+
 ## Layout
 
 ```
@@ -173,6 +184,7 @@ src/workspace/              workspace keys, directories, hooks, safety invariant
 src/prompt/                 strict Liquid rendering, continuation guidance
 src/agent/                  Codex app-server client (JSON-RPC over stdio) + worker attempt loop
 src/orchestrator/           poll tick, dispatch, retries, reconciliation, snapshot
-src/observability/          logger, HTTP dashboard + JSON API
+src/observability/          logger, HTTP server (JSON API + static dashboard)
+dashboard/                  React/Tailwind/shadcn dashboard; dist/ is committed
 tests/                      Core Conformance tests (fake tracker + fake app-server)
 ```
