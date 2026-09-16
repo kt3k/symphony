@@ -28,3 +28,21 @@ jobs:
         with:
           deno-version: v2.x
       - run: deno task test
+
+  dashboard:
+    name: dashboard build is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno task build:dashboard
+      - name: Verify committed dist matches the build
+        run: |
+          if [ -n "$(git status --porcelain -- dashboard/dist)" ]; then
+            echo "dashboard/dist is stale; run 'deno task build:dashboard' and commit the result" >&2
+            git status --porcelain -- dashboard/dist >&2
+            git diff --stat -- dashboard/dist >&2
+            exit 1
+          fi

@@ -67,9 +67,23 @@ Deno.test("dashboard and JSON API serve orchestrator state", async () => {
     assertEquals(state.running[0].issue_url, "https://x/1");
     assert(typeof state.codex_totals.seconds_running === "number");
 
-    const html = await (await fetch(`${base}/`)).text();
+    const htmlResponse = await fetch(`${base}/`);
+    assertEquals(htmlResponse.headers.get("content-type"), "text/html; charset=utf-8");
+    const html = await htmlResponse.text();
     assert(html.includes("<title>Symphony</title>"));
-    assert(html.includes("/api/v1/state"));
+    assert(html.includes('<script src="/app.js">'));
+    assert(html.includes('<link rel="stylesheet" href="/index.css" />'));
+    const js = await fetch(`${base}/app.js`);
+    assertEquals(js.status, 200);
+    assertEquals(js.headers.get("content-type"), "text/javascript; charset=utf-8");
+    assert((await js.text()).includes("/api/v1/state"));
+    const css = await fetch(`${base}/index.css`);
+    assertEquals(css.status, 200);
+    assertEquals(css.headers.get("content-type"), "text/css; charset=utf-8");
+    assert((await css.text()).includes(".card"));
+    const traversal = await fetch(`${base}/dist/..%2Fdeno.json`);
+    assertEquals(traversal.status, 404);
+    await traversal.body?.cancel();
 
     const details = await (await fetch(`${base}/api/v1/T-1`)).json();
     assertEquals(details.status, "running");
@@ -99,6 +113,31 @@ Deno.test("dashboard and JSON API serve orchestrator state", async () => {
     assertEquals(unknown.status, 404);
     assertEquals((await unknown.json()).error.code, "not_found");
   } finally {
+    await stop();
+  }
+});
+
+Deno.test("missing dashboard build answers 503 for its files but keeps the API", async () => {
+  const { HttpServer } = await import("../src/observability/http.ts");
+  const { app, stop } = await startApp("");
+  const server = HttpServer.start({
+    port: 0,
+    orchestrator: app.orchestrator,
+    logger: new Logger([new MemorySink()]),
+    dashboardDir: await Deno.makeTempDir(),
+  });
+  try {
+    const root = await fetch(`${server.url}/`);
+    assertEquals(root.status, 503);
+    assertEquals((await root.json()).error.code, "dashboard_not_built");
+    const css = await fetch(`${server.url}/index.css`);
+    assertEquals(css.status, 503);
+    await css.body?.cancel();
+    const state = await fetch(`${server.url}/api/v1/state`);
+    assertEquals(state.status, 200);
+    await state.body?.cancel();
+  } finally {
+    await server.stop();
     await stop();
   }
 });
